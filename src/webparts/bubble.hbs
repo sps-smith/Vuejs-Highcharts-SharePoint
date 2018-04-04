@@ -1,0 +1,34 @@
+{{!-- <script src="https://code.highcharts.com/highcharts.js"></script> --}}
+<!-- <script src="https://code.highcharts.com/modules/exporting.js"></script> -->
+{{!-- <script src="https://code.highcharts.com/highcharts-more.js"></script> --}}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" rel="stylesheet">
+<link type="text/css" href="//unpkg.com/bootstrap@next/dist/css/bootstrap.min.css" rel="stylesheet">
+<link type="text/css" href="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.css" rel="stylesheet">
+<link type="text/css" rel="stylesheet" href="{{ publishPath }}/styles/app.css?v={{ assetsVersion }}">
+
+
+<script src="https://cdn.polyfill.io/v2/polyfill.min.js"></script>
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<script src="https://unpkg.com/vuex"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.17.1/axios.min.js"></script>
+<script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.js"></script>
+{{!-- <script src="../siteassets/bubble/bubblechart.js?v=1.0.4"></script> --}}
+
+<div id="content">
+  <div id="sideBar">
+    <chart-lengend :quarter="appquarter" :year="appyear"></chart-lengend>
+    <vbu-data></vbu-data>
+  </div>
+  <div id="chartContent">
+    <vbu-chart></vbu-chart>
+  </div>
+
+</div>
+<script src="{{ publishPath }}/scripts/app.js?v={{ assetsVersion }}"></script>
+
+<script>
+
+
+
+
+</script>

@@ -1,0 +1,32 @@
+{
+  "name": "vuejs-highcharts-share-point",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "gulp build",
+    "watch": "gulp watch",
+    "config": "gulp config:force",
+    "publish": "gulp push:diff"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@pnp/common": "^1.0.2",
+    "@pnp/logging": "^1.0.2",
+    "@pnp/odata": "^1.0.2",
+    "@pnp/sp": "^1.0.2",
+    "axios": "^0.18.0",
+    "highcharts": "^6.0.7",
+    "vue": "^2.5.16",
+    "vuex": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/sharepoint": "^2016.1.0",
+    "es6-promise": "^4.2.4",
+    "eslint-config-standard": "^10.2.1",
+    "sp-build-tasks": "^1.4.4",
+    "tslint-config-standard": "^7.0.0",
+    "whatwg-fetch": "^2.0.3"
+  }
+}

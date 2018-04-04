@@ -1,0 +1,10 @@
+{
+  "generator-sppp": {
+    "app.name": "vuejs-highcharts-share-point",
+    "sppp.version": "2.2.2",
+    "app.description": "",
+    "app.author": "",
+    "conf.spFolder": "siteassets/highcharts",
+    "conf.distFolder": "./dist"
+  }
+}

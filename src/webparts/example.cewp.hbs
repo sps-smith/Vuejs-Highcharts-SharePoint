@@ -1,0 +1,691 @@
+<!-- {{ publishPath }}/webparts/{{ fileName }} -->
+
+<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+
+<link type="text/css" rel="stylesheet" href="{{ publishPath }}/styles/app.css?v={{ assetsVersion }}">
+<script src="{{ publishPath }}/scripts/app.js?v={{ assetsVersion }}"></script>
+
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<!-- <script src="https://code.highcharts.com/modules/exporting.js"></script> -->
+<script src="https://code.highcharts.com/highcharts-more.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" rel="stylesheet">
+<link type="text/css" href="//unpkg.com/bootstrap@next/dist/css/bootstrap.min.css" rel="stylesheet">
+<link type="text/css" href="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.css" rel="stylesheet">
+<link href="../siteassets/bubble/bubblechart.css?v=2.9" rel="stylesheet">
+<div id="content">
+  <div id="sideBar">
+    <chart-lengend :quarter="appquarter" :year="appyear"></chart-lengend>
+    <vbu-data></vbu-data>
+  </div>
+  <div id="chartContent">
+    <vbu-chart></vbu-chart>
+  </div>
+
+</div>
+
+<script src="https://cdn.polyfill.io/v2/polyfill.min.js"></script>
+<script src="https://unpkg.com/vue/dist/vue.min.js"></script>
+<script src="https://unpkg.com/vuex"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.17.1/axios.min.js"></script>
+<script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.js"></script>
+<script src="../siteassets/bubble/bubblechart.js?v=1.0.4"></script>
+
+<script>
+
+  var chartlengend = Vue.component("chart-lengend", {
+    template: '<div id="lengd">\
+                <div style="font-weight:bold">Select Senior Portfolio</div>\
+				<ul>\
+					<li class="liport" v-for="item in lengend" v-if="showPortfolio(item.Color)"  :title="titleText(item.PortfolioMgr)"><input type="checkbox" class="chkbx" :value="item.Manager" v-if="!comparisonSelected" v-model="portfolioAry" /> <span class="box" :style="{ backgroundColor: item.Color, color: item.Color }">DD</span> {{ item.PortfolioMgr }} </li></ul>\
+				<b-button size="sm" class="clrcss" @click="clearall" variant="warning" title="clear all selections" v-if="portfolioAry.length > 0 && !comparisonSelected">Clear</b-button>\
+				<div>\
+                    <hr>\
+                    <div style="font-weight:bold">Select Quarter</div>\
+                    <div id="period">\
+                        <div>\
+                            <p>Quarter: </p>\
+                            <ul>\
+                                <li><input id="Q1" type="checkbox" value="Q1" class="chkbx" v-model="selectedQuarter" :disabled="comparisonSelected" /> <label for="Q1">Q1</label></li>\
+                                <li><input id="Q2" type="checkbox" value="Q2" class="chkbx" v-model="selectedQuarter" :disabled="comparisonSelected" /> <label for="Q2">Q2</label></li>\
+                                <li><input id="Q3" type="checkbox" value="Q3" class="chkbx" v-model="selectedQuarter" :disabled="comparisonSelected" /> <label for="Q3">Q3</label></li>\
+                                <li><input id="Q4" type="checkbox" value="Q4" class="chkbx" v-model="selectedQuarter" :disabled="comparisonSelected" /> <label for="Q4">Q4</label></li>\
+                            </ul>\
+                        </div>\
+                        <div>\
+                            <p>Fiscal Year: </p>\
+                            <ul>\
+                                <li><input id="2016" type="checkbox" value="2016" class="chkbx" v-model="selectedYear" :disabled="comparisonSelected" /> <label for="2016">2016</label></li>\
+                                <li><input id="2017" type="checkbox" value="2017" class="chkbx" v-model="selectedYear" :disabled="comparisonSelected" /> <label for="2017">2017</label></li>\
+                                <li><input id="2018" type="checkbox" value="2018" class="chkbx" v-model="selectedYear" :disabled="comparisonSelected" /> <label for="2018">2018</label></li>\
+                            </ul>\
+                        </div>\
+                    </div>\
+                    <b-button class="btn btn-success" variant="success" v-if="!comparisonSelected" @click="getPortfolio">OK</b-button>\
+                    <b-button class="btn btn-warning" variant="warning" v-if="comparisonSelected" @click="allportfolio">Clear</b-button><br/>\
+                </div>\
+            </div>',
+    data: function () {
+      return {
+        portfolioAry: [],
+        selectedQuarter: [],
+        selectedYear: [],
+        currentSelection: [],
+        typeoptions: [
+          { text: 'VBUs', value: 'vbu' },
+          { text: 'Portfolios', value: 'portfolio' }
+        ],
+        viewtype: "vbu",
+        showtype: false,
+        vbudata: []
+      }
+    },
+    props: ["quarter", "year"],
+    computed: {
+      portfolioSelected: function () {
+        if (this.portfolioAry.length > 0)
+          return true;
+        return false;
+      },
+      show: function () {
+        return store.getters.ShouldBeShown;
+      },
+      lengend: function () {
+        return store.getters.getPortfolioArray;
+      },
+      comparisonSelected: function () {
+        return store.getters.getComparison;
+      },
+      loading: function () {
+        return store.getters.getLoading;
+      }
+    },
+    watch: {
+      portfolioAry: function () {
+        store.dispatch("filterPortfolio", this.portfolioAry);
+        if (this.portfolioAry.length > 1) {
+          this.showtype = true;
+          if (this.viewtype == "portfolio")
+            store.dispatch("getCompareData", "portfolio");
+        }
+        else {
+          this.viewtype = "vbu";
+          this.showtype = false;
+        }
+      },
+      quarter: function () {
+        this.selectedQuarter.push(this.quarter);
+      },
+      year: function () {
+        this.selectedYear.push(this.year);
+      },
+      viewtype: function () {
+        store.commit("setComparisonData", this.viewtype);
+        if (this.viewtype == "portfolio")
+          store.dispatch("getCompareData", "portfolio");
+        else
+          store.dispatch("filterPortfolio", this.portfolioAry);
+      }
+    },
+    methods: {
+      getPortfolio: function () {
+        if (this.portfolioAry.length == 0 && this.selectedQuarter.length > 1 || this.portfolioAry.length == 0 && this.selectedYear.length > 1)
+          alert("You must select 1 portfolio, to do comparison across quarters");
+        else if (this.portfolioAry.length > 1 && this.selectedQuarter.length > 1 || this.portfolioAry.length > 1 && this.selectedYear.length > 1)
+          alert("Mulitple portfolios and multiple quarters cannot be selected");
+        else {
+          if (this.selectedQuarter.length == 0 || this.selectedYear.length == 0)
+            alert("You must select a Quarter and Fiscal Year");
+          else {
+            if (showButton(this.selectedQuarter, store.getters.getCurrentlySelectedQuarters) || showButton(this.selectedYear, store.getters.getCurrentlySelectedYears)) {
+              store.commit("setLoading", true);
+              store.dispatch("resetSelections");
+              this.selectedQuarter.sort();
+              this.selectedQuarter.forEach(function (item) {
+                store.commit("setCurrentlySelectedQuarters", item);
+              });
+              this.selectedYear.sort();
+              this.selectedYear.forEach(function (item) {
+                store.commit("setCurrentlySelectedYears", item);
+              });
+              store.dispatch("newPortfolio", {
+                parm1: this.portfolioAry,
+                parm2: this.selectedQuarter,
+                parm3: this.selectedYear
+              });
+              this.viewtype = "vbu";
+            }
+          }
+        }
+      },
+      showPortfolio: function (color) {
+        if (store.getters.getComparison == false)
+          return true
+        else {
+          if (color == this.portfolioAry[0])
+            return true;
+        }
+        return false;
+      },
+      allportfolio: function () {
+        store.commit("setLoading", true);
+        store.commit("setChartData", []);
+        store.commit("setOriginalData", []);
+        this.currentSelection = [];
+        this.portfolioAry = [];
+        this.selectedQuarter = [];
+        this.selectedQuarter.push(this.quarter);
+        this.selectedYear = [];
+        this.selectedYear.push(this.year);
+        store.dispatch("allPortfolio", this.portfolioAry);
+      },
+      titleText: function (name) {
+        return "Click to view chart for " + name;
+      },
+      addSelectedPeriod: function () {
+        if (this.portfolioAry.length > 1 && this.currentSelection.length == 1) {
+          alert("Only one period can be selected when mulitple portfolios have been selected");
+          return false;
+        }
+        if (this.portfolioAry.length == 0 && this.currentSelection.length == 1) {
+          alert("You cannot select multiple periods for all portfolios. You must select one portfolio");
+          return false;
+        }
+        var dt = {
+          ID: this.currentSelection.length + 1,
+          Quarter: this.selectedQuarter,
+          Year: this.selectedYear,
+          Key: this.selectedYear + this.selectedQuarter
+        }
+        this.currentSelection.push(dt);
+      },
+      removeSelection: function (id) {
+        var wrk = this.currentSelection.filter(function (item) {
+          return item.ID != id;
+        });
+        this.currentSelection = wrk;
+      },
+      clearall: function () {
+        this.portfolioAry = [];
+        this.viewtype = "vbu";
+        this.showtype = false;
+      },
+      getValue: function (val1, val2) {
+        return val1 + "|" + val2;
+      }
+    },
+    updated: function () {
+    }
+  });
+
+  var _chart = Vue.component("vbu-chart", {
+    template: '<div>\
+                <h2>{{chartTitle}}</h2>\
+				<ul class="ulSelected">\
+					<li v-for="item in selectedPortfolio"><span class="box" :style="{ backgroundColor: item.Color, color: item.Color }">DD</span> {{ item.Manager }} </li>\
+				</ul>\
+                <b-button class="btnprint" variant="primary" size="sm" @click="printchart">Rules</b-button>\
+				<transition name="load">\
+					<div v-show="loading" class="dvloading">\
+						<img src="../siteassets/bubble/please_wait.gif" />\
+					</div>\
+				</transition>\
+                <div id="container" v-show="!nodata"></div>\
+				<div v-show="nodata"><h2>No Data Found</h2></div>\
+                <b-modal ref="rulesmdl" size="lg" hide-footer centered title="Interactive Bubble Chart" title-tag="h1">\
+                    <p><strong>Data available</strong></p>\
+                    The data goes back to Q4, 2016. Previous quarters are not available. Data is based on quarterly reports used for metrics and the bubble chart. The data included:\
+                    <ul>\
+                        <li>Core Ratio</li>\
+                        <li>Organic Growth</li>\
+                        <li>Net Revenue</li>\
+                    </ul>\
+                    <p><strong>Rules and notes for display</strong></p>\
+                    Because this is a pilot project, there are some limitations on the views:\
+                    <ol>\
+                        <li>The main (home) view does NOT show revenue as relative bubble size. However, the bubble size is keyed to revenue in other views.\
+                        </li>\
+                        <li>Data labels may overlap. Because this is a pilot project, there are some basic display features that are minimal. However, if you hover over a bubble, you can see each VBU\'s metrics.\
+                        </li>\
+                        <li>If you want to view multiple quarters, you must select <strong>one portfolio only</strong>.\
+                        </li>\
+                        <li>If you want to view multiple portfolios, you must select <strong>one quarter only</strong>.\
+                        </li>\
+                        <li>For any chart, you can view data only by selecting <strong>Show Data</strong>. This chart is also printable to file.\
+                        </li>\
+                        <li>To switch from one view to another, first <strong>Clear</strong> the previous view filters.\
+                        </li>\
+                    </ol>\
+                    <h2 style="text-align: left;">Quickstart for popular views/tasks</h2>\
+                    <p><strong>View one or more quarters for a portfolio:</strong></p>\
+                    <ol>\
+                        <li>Select a portfolio from the <strong>Senior Portfolio</strong> list.</li>\
+                        <li>Select one or more quarters from the <strong>Select Quarter</strong> list.</li>\
+                        <li>Click <strong>OK</strong>.</li>\
+                        <li>To switch to another view, select <strong>Clear</strong>.</li>\
+                    </ol>\
+                    <p><strong>View one or more portfolios for a specific quarter:</strong></p>\
+                    <ol>\
+                        <li>Select one or more portfolio from the <strong>Senior Portfolio</strong> list.</li>\
+                        <li>Select one quarter from the <strong>Select Quarter</strong> list.</li>\
+                        <li>Click <strong>OK</strong>.</li>\
+                        <li>To switch to another view, select <strong>Clear</strong>.</li>\
+                    </ol>\
+                    <p><strong>Show data for a view:</strong></p>\
+                    <ol>\
+                        <li>Create a view by selecting an appropriate combination of portfolio/quarter.</li>\
+                        <li>Select <strong>Show Data</strong></li>\
+                        <li>If multiple quarters were selected for the view, you can sort the data by VBU or by quarter.</li>\
+                        <li>To view the data in a chart, select <strong>Show data in chart</strong>.</li>\
+                    </ol>\
+                    <p>Feedback or suggestions? Email <a href="mailto:lrc@volarisgroup.com">lrc@volarisgroup.com</a></p>\
+				</b-modal>\
+			</div>',
+    data: function () {
+      return {
+        pcolor: '',
+        highchartsOptions: {},
+        scatterOptions: {},
+        prevselectedQuarter: "",
+        prevselectedYear: 0,
+        chartTitle: "Volaris Business Unit Performance",
+        chart: undefined,
+        togglevbu: "junior"
+      }
+    },
+    computed: {
+      chartAry: function () {
+        return store.getters.getMetrics;
+      },
+      selectedPortfolio: function () {
+        return store.getters.CurrentPortfolioData;
+      },
+      nodata: function () {
+        return store.getters.getNoData;
+      },
+      loading: function () {
+        return store.getters.getLoading;
+      }
+    },
+    methods: {
+      printchart: function () {
+        this.$refs.rulesmdl.show();
+      }
+    },
+    watch: {
+      chartAry: function () {
+        this.chartTitle = "Volaris Business Unit Performance  " + store.getters.getDisplayPeriod;
+        if (store.getters.getFilterSelected) {
+          this.chart.destroy();
+          if (store.getters.getComparisonData == "vbu")
+            this.chart = Highcharts.chart(this.highchartsOptions);
+          else
+            this.chart = Highcharts.chart(this.PorfolioOptions);
+        }
+        else {
+          this.chart.destroy();
+          this.chart = Highcharts.chart(this.scatterOptions)
+        }
+        this.chart.series[0].setData(store.getters.getMetrics, true);
+        this.chart.redraw();
+      }
+    },
+    created: function () {
+      this.highchartsOptions = {
+        chart: {
+          type: 'bubble',
+          plotBorderWidth: 1,
+          renderTo: 'container'
+        },
+
+        credits: {
+          enabled: false
+        },
+
+        lengend: {
+          enabled: false,
+          labelFormat: "",
+          title: [{
+            text: ""
+          }]
+        },
+
+        title: {
+          text: null
+        },
+
+        xAxis: {
+          gridLineWidth: 1,
+          title: {
+            text: 'CORE RATIO'
+          },
+          labels: {
+            format: '{value}%'
+          },
+          plotLines: [{
+            color: 'blue',
+            width: 2,
+            value: 40,
+          }]
+        },
+
+        yAxis: {
+          startOnTick: false,
+          endOnTick: false,
+          title: {
+            text: 'ORGANIC GROWTH'
+          },
+          labels: {
+            format: '{value}%'
+          },
+          plotLines: [{
+            color: 'blue',
+            width: 2,
+            value: 10,
+          }]
+        },
+
+        tooltip: {
+          useHTML: true,
+          headerFormat: '<table>',
+          pointFormat: '<tr><th colspan="2" style="color: {point.color}; font-weight:bold;"><h6>{point.dname}</h6></th></tr>' +
+            '<tr><th>Core Ratio:</th><td>{point.x}%</td></tr>' +
+            '<tr><th>Organic Growth:</th><td>{point.y}%</td></tr>' +
+            '<tr><th>Total Revenue:</th><td>${point.rev}M</td></tr>',
+          footerFormat: '</table>',
+          followPointer: false
+        },
+
+        plotOptions: {
+          series: {
+            dataLabels: {
+              shape: 'callout',
+              enabled: true,
+              format: '{point.name}',
+              color: '#000',
+              allowOverlap: true,
+              //verticalAlign: "top",
+              style: [{
+                textOutline: 'none'
+              }]
+            },
+            cursor: 'pointer',
+            events: {
+              click: function () {
+                //alert(event.point.name + ' click');
+              }
+            }
+          }
+
+        },
+
+        series: [{
+          data: "",
+          name: "",
+          events: {
+            legendItemClick: function () {
+              return false;
+            }
+          }
+        }]
+      },
+        this.scatterOptions = {
+          chart: {
+            type: 'scatter',
+            plotBorderWidth: 1,
+            renderTo: 'container'
+          },
+
+          credits: {
+            enabled: false
+          },
+
+          lengend: {
+            enabled: false,
+            labelFormat: "",
+            title: [{
+              text: ""
+            }]
+          },
+
+          title: {
+            text: null
+          },
+
+          xAxis: {
+            gridLineWidth: 1,
+            title: {
+              text: 'CORE RATIO'
+            },
+            labels: {
+              format: '{value}%'
+            },
+            plotLines: [{
+              color: 'blue',
+              width: 2,
+              value: 40,
+            }]
+          },
+
+          yAxis: {
+            startOnTick: false,
+            endOnTick: false,
+            title: {
+              text: 'ORGANIC GROWTH'
+            },
+            labels: {
+              format: '{value}%'
+            },
+            plotLines: [{
+              color: 'blue',
+              width: 2,
+              value: 10,
+            }]
+          },
+
+          tooltip: {
+            useHTML: true,
+            headerFormat: '<table>',
+            pointFormat: '<tr><th colspan="2" style="color: {point.color};"><h6>{point.dname}</h6></th></tr>' +
+              '<tr><th>Core Ratio:</th><td>{point.x}%</td></tr>' +
+              '<tr><th>Organic Growth:</th><td>{point.y}%</td></tr>' +
+              //'<tr><th>VBU\'s:</th><td>{point.count}</td></tr>' +
+              '<tr><th>Revenue:</th><td>${point.rev}M</td></tr>',
+            //'<tr><th>Avg Rev:</th><td>${point.z}M</td></tr>',
+            footerFormat: '</table>',
+            hideDelay: 600,
+            followPointer: false
+          },
+
+          plotOptions: {
+            series: {
+              dataLabels: {
+                shape: 'callout',
+                align: 'center',
+                enabled: true,
+                format: '{point.name}',
+                color: '#000',
+                allowOverlap: true,
+                style: [{
+                  textOutline: 'none'
+                }],
+                y: 20
+              },
+              marker: {
+                radius: 20
+              },
+              cursor: 'pointer',
+              events: {
+                click: function () {
+                  //alert(event.point.name + ' click');
+                }
+              }
+            }
+
+          },
+
+          series: [{
+            data: "",
+            name: " ",
+            events: {
+              legendItemClick: function () {
+                return false;
+              }
+            }
+          }]
+        },
+        this.PorfolioOptions = {
+          chart: {
+            type: 'bubble',
+            plotBorderWidth: 1,
+            renderTo: 'container'
+          },
+
+          credits: {
+            enabled: false
+          },
+
+          lengend: {
+            enabled: false,
+            labelFormat: "",
+            title: [{
+              text: ""
+            }]
+          },
+
+          title: {
+            text: null
+          },
+
+          xAxis: {
+            gridLineWidth: 1,
+            title: {
+              text: 'CORE RATIO'
+            },
+            labels: {
+              format: '{value}%'
+            },
+            plotLines: [{
+              color: 'blue',
+              width: 2,
+              value: 40,
+            }]
+          },
+
+          yAxis: {
+            startOnTick: false,
+            endOnTick: false,
+            title: {
+              text: 'ORGANIC GROWTH'
+            },
+            labels: {
+              format: '{value}%'
+            },
+            plotLines: [{
+              color: 'blue',
+              width: 2,
+              value: 10,
+            }]
+          },
+
+          tooltip: {
+            useHTML: true,
+            headerFormat: '<table>',
+            pointFormat: '<tr><th colspan="2" style="color: {point.color}; font-weight:bold;"><h6>{point.dname}</h6></th></tr>' +
+              '<tr><th>Number of VBUs:</th><td>{point.count}</td></tr>' +
+              '<tr><th>Avg. Core Ratio:</th><td>{point.x}%</td></tr>' +
+              '<tr><th>Avg. Organic Growth:</th><td>{point.y}%</td></tr>' +
+              '<tr><th>Total Revenue:</th><td>${point.rev}M</td></tr>',
+            footerFormat: '</table>',
+            followPointer: false
+          },
+
+          plotOptions: {
+            series: {
+              dataLabels: {
+                shape: 'callout',
+                enabled: true,
+                format: '{point.name}',
+                color: '#000',
+                allowOverlap: true,
+                //verticalAlign: "top",
+                style: [{
+                  textOutline: 'none'
+                }]
+              },
+              cursor: 'pointer',
+              events: {
+                click: function () {
+                  //alert(event.point.name + ' click');
+                }
+              }
+            }
+
+          },
+
+          series: [{
+            data: "",
+            name: "",
+            events: {
+              legendItemClick: function () {
+                return false;
+              }
+            }
+          }]
+        }
+
+    },
+    mounted: function () {
+
+      this.chart = Highcharts.chart(this.scatterOptions)
+    }
+  });
+
+  Vue.component("vbu-data", {
+    template: '<div class="showButton">\
+                <button type="button" class="btn btn-primary" @click.prevent="showData">Show Data</button>\
+              </div>\
+            ',
+    data: function () {
+      return {
+        aWin: null
+      }
+    },
+    methods: {
+      showData: function () {
+        if (this.aWin != null)
+          this.aWin.close();
+        sessionStorage.removeItem("LRCData");
+        sessionStorage.setItem("LRCData", JSON.stringify(store.getters.getMetrics));
+        var data = {
+          Year: store.getters.CurrentYear,
+          Quarter: store.getters.CurrentQuarter,
+          SelectedPortfolio: store.getters.CurrentPortfolioData,
+          SelectedYears: store.getters.getSelectedYears,
+          SelectedQuarters: store.getters.getSelectedQuarters,
+          Comparison: store.getters.getComparison,
+          CompareType: store.getters.getComparisonData
+        }
+        sessionStorage.removeItem("LRCDataDetails");
+        sessionStorage.setItem("LRCDataDetails", JSON.stringify(data));
+        this.aWin = window.open("../sitepages/bubble chart data.aspx", "ChartData", "resizable=1,height=800,width=1000");
+        return false;
+      }
+    }
+  });
+
+  var app = new Vue({
+    el: "#content",
+    data: {
+      vbuData: [],
+      lengendData: [],
+      appquarter: "",
+      appyear: ""
+    },
+    mounted: function () {
+      getCurrentPeriod("", "");
+    }
+  })
+
+
+</script>
+

@@ -1,0 +1,210 @@
+// Here goes your awesome SCSS
+h1#pageTitle
+{
+    margin-top:0;
+}
+#sideBar
+{
+  margin-top:20px;
+  min-width: 170px;
+}
+#sideNavBox, .ms-breadcrumb-top
+{
+    display: none;
+}
+#contentBox
+{
+    margin-left:5px;
+}
+.ms-webpartPage-root
+{
+    border-spacing: 0;
+}
+#contentRow
+{
+    padding-top: 0;
+}
+#s4-titlerow
+{
+    height: 50px;
+}
+
+label
+{
+    margin-bottom: 0;
+}
+#content
+{
+    max-width: 100%;
+    width:100%;
+    display: flex;
+    -webkit-flex-flow:row;
+    -ms-flex-flow: row;
+    flex-flow:row;
+    justify-content: flex-start;
+
+    div#sideBar
+    {
+        div#lengd
+        {
+            border:1px solid lightgrey;
+            border-radius:5px;
+            width:auto;
+            padding:5px;
+
+            .chkbx
+            {
+              height:16px;
+              width:16px;
+              cursor: pointer;
+            }
+
+            ul
+            {
+                display: flex;
+                flex-flow: column;
+                padding-left:0;
+                list-style: none;
+
+                li.liport
+                {
+                    white-space: nowrap;
+                }
+            }
+
+            .btn
+            {
+                margin-left:0;
+                cursor: pointer;
+            }
+
+            input[type=checkbox]
+            {
+              margin-top: 0;
+            }
+
+            input[type=radio]
+            {
+              margin-top: -5px;
+            }
+
+            span.clrcss
+            {
+                cursor: pointer;
+                text-decoration: underline;
+                font-size: 10pt;
+                color: blue;
+            }
+        }
+    }
+    div#period
+    {
+        display: flex;
+        -webkit-flex-flow: row wrap;
+        -ms-flex-flow: row wrap;
+        flex-flow: row wrap;
+        justify-content: space-between;
+    }
+
+    #chartContent
+    {
+        flex:1;
+
+        h2
+        {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 0;
+        }
+
+        div.dvtoggle
+        {
+            display: flex;
+            -ms-flex-flow: row wrap;
+            -webkit-flex-flow: row wrap;
+            flex-flow: row wrap;
+            padding-left: 70px;
+        }
+
+        ul.ulSelected, ul.ultoggle
+        {
+            text-align: center;
+            padding-left: 0;
+            list-style: none;
+            margin: 0;
+
+            .box
+            {
+                width:20px;
+                height: 20px;
+            }
+        }
+
+        ul.ulSelected li,  ul.ultoggle li{
+            display: inline-block;
+            padding-right: 10px;
+        }
+
+        div.dvloading
+        {
+            position: absolute;
+            left:40%;
+            top:15%;
+            z-index: 1;
+        }
+    }
+
+    #container
+    {
+        max-width: 100%;
+        width:100%;
+        height: 800px;
+        overflow:visible;
+    }
+}
+
+.modal
+{
+	width:auto;
+	background: inherit;
+}
+
+.highcharts-legend-item
+{
+	display: none;
+}
+.showButton
+{
+  margin-top: 10px;
+}
+
+.btnprint{
+  position: absolute;
+  right:5px;
+  top:60px;
+}
+tspan
+{
+    font-weight: normal !important;
+    font-size: 10pt !important;
+    width:30px;
+    overflow-wrap: break-word;
+}
+text{
+    text-align: center;
+}
+rect
+{
+    border:10px solid red;
+
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+
+    border-left:10px solid red;
+}
+
+.load-leave-active
+{
+    transition: all 2s;
+    opacity: 0;
+}

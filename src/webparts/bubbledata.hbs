@@ -1,0 +1,670 @@
+<link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap@next/dist/css/bootstrap.min.css" />
+<link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.css" />
+<div id="content">
+  <vbu-data></vbu-data>
+</div>
+
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/highcharts-more.js"></script>
+<script src='https://cdn.polyfill.io/v2/polyfill.min.js'></script>
+<script src="https://unpkg.com/vue/dist/vue.min.js"></script>
+<script src="https://unpkg.com/vuex"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.17.1/axios.min.js"></script>
+<script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.js"></script>
+
+
+<script>
+
+  var store = new Vuex.Store({
+    state: {
+      Quarter: "",
+      Year: 0,
+      SelectedPortfolio: [],
+      SelectedQuarters: [],
+      SelectedYears: [],
+      metricsData: [],
+      sortKey: "VBU_Name",
+      comparison: false,
+      comparetype: ""
+    },
+    getters: {
+      getReportDataAll: function (state) {
+        var data = [], data1 = [];
+        var data = state.metricsData.map(function (item) {
+          return {
+            VBU_Name: item.dname,
+            Organic_Growth: item.y,
+            Core_Ratio: item.x,
+            Revenue: "$" + item.z + "M",
+            Portfolio: item.color
+          }
+        });
+        //sort the selection by descending - most recent quarter
+        if (state.SelectedPortfolio != "") {
+          var srtl = state.SelectedPortfolio[0].Manager.length - 7;
+          var nmary = [], srt = [];
+          if (state.comparison) {
+            state.SelectedPortfolio.forEach(function (item) {
+              var nm = parseInt(item.Manager.substring(srtl).split(" ")[1] + item.Manager.substring(srtl).split(" ")[0].replace("Q", "").trim());
+              nmary.push(nm);
+            })
+
+
+            nmary.sort(function (a, b) {
+              return b - a;
+            })
+
+            nmary.forEach(function (dta) {
+              var fn = state.SelectedPortfolio.filter(function (item) {
+                return dta == parseInt(item.Manager.substring(srtl).split(" ")[1] + item.Manager.substring(srtl).split(" ")[0].replace("Q", "").trim())
+              })
+              srt.push(fn);
+            })
+
+            //sort the results based on the most recent from above
+            state.SelectedPortfolio = [];
+            srt.forEach(function (clrr) {
+              var wk = data.filter(function (item) {
+                return clrr[0].Color == item.Portfolio;
+              });
+              wk.sort(function (a, b) {
+                return a.VBU_Name > b.VBU_Name;
+              })
+              Array.prototype.push.apply(data1, wk);
+              state.SelectedPortfolio.push(clrr[0]);
+            })
+
+            //state.SelectedPortfolio = [];
+
+            //store.commit("updatePortfolio", srt);
+            if (state.sortKey == "VBU_Name") {
+              var data2 = [], wrk = [];
+              data1.forEach(function (item) {
+                var fn = wrk.filter(function (vl) {
+                  return vl == item.VBU_Name;
+                })
+                if (fn.length == 0) {
+                  wrk.push(item.VBU_Name);
+                  $.each(data1, function (idx, dta) {
+                    if (dta.VBU_Name == item.VBU_Name)
+                      data2.push(dta);
+                  })
+                }
+              })
+              data1 = data2;
+            }
+            // srt.sort(function(a,b){
+            // 	return a.Manager > b.Manager;
+            // })
+            return data1;
+          }
+          else
+            return data;
+        }
+        return data.sort(function (a, b) {
+          return a.VBU_Name.toLowerCase() > b.VBU_Name.toLowerCase();
+        });
+      },
+      getReportDataKeysAll: function (state) {
+        var data = [];
+        if (state.SelectedPortfolio.length > 1) {
+          //if (state.comparetype == "vbu")
+          data.push({ key: 'VBU_Name', sortable: false }, { key: 'Organic_Growth', sortable: false }, { key: 'Core_Ratio', sortable: false }, { key: 'Revenue', sortable: false }, { key: 'Portfolio', sortable: false });
+          // else
+          // 	data.push({ key: 'VBU_Name', label: 'Portfolio', sortable: false}, { key: 'Organic_Growth', label: 'Avg. Organic Growth', sortable: false }, { key: 'Core_Ratio', label: 'Avg. Core Ratio', sortable: false }, { key: 'Revenue', label: 'Total Revenue', sortable: false }, { key: 'Portfolio', sortable: false});
+        }
+        else
+          data.push({ key: 'VBU_Name', sortable: true, formatter: 'getname' }, { key: 'Organic_Growth', sortable: true }, { key: 'Core_Ratio', sortable: true }, { key: 'Revenue', sortable: true });
+        return data;
+      },
+      getDisplayPeriod: function (state) {
+        if (state.SelectedQuarters.length == 1 && state.SelectedYears.length == 1)
+          return state.SelectedQuarters[0] + " " + state.SelectedYears[0];
+        else if (state.SelectedQuarters.length == 0 && state.SelectedYears.length == 0)
+          return state.Quarter + " " + state.Year;
+        return "";
+      },
+      CurrentPortfolioData: function (state) {
+        return state.SelectedPortfolio;
+      },
+      getSortingKey: function (state) {
+        return state.sortKey;
+      },
+      getComparisonValue: function (state) {
+        return state.comparison;
+      },
+      getCompaareType: function (state) {
+        return state.comparetype;
+      }
+    },
+    mutations: {
+      setmetricsData: function (state, payload) {
+        state.metricsData = payload;
+      },
+      updateYear: function (state, payload) {
+        state.Year = payload;
+      },
+      updateQuarter: function (state, payload) {
+        state.Quarter = payload;
+      },
+      updatePortfolio: function (state, payload) {
+        state.SelectedPortfolio = payload;
+      },
+      setSelectedQuarters: function (state, payload) {
+        state.SelectedQuarters = payload;
+      },
+      setSelectedYears: function (state, payload) {
+        state.SelectedYears = payload;
+      },
+      setSortingKey: function (state, payload) {
+        state.sortKey = payload;
+      },
+      setComparisonValue: function (state, payload) {
+        state.comparison = payload;
+      },
+      setCompareType: function (state, payload) {
+        state.comparetype = payload;
+      }
+    },
+    actions: {
+      SortReport: function (context) {
+
+      }
+    }
+  });
+
+  var _data = Vue.component("vbu-data", {
+    template: '<div class="showTable">\
+                <h2>{{chartTitle}}</h2>\
+                <ul class="ulSelected"><li v-for="item in selectedPortfolio"><span class="box" :style="{ backgroundColor: item.Color, color: item.Color }">DD</span> {{ item.Manager }} </li></ul>\
+                <div v-if="comparisonSelected" class="dvtoggle"><div v-if="!showchart"><span>Sort By: </span><input id="toggle" type="radio" name="radView" value="VBU_Name" class="chkbx" v-model="comparison" /> <label for="toggle">VBU</label>\
+                  <input id="toggle1" type="radio" name="radView" value="Portfolio" class="chkbx" v-model="comparison" /> <label for="toggle1">Quarter</label></div> <b-button class="btntoggle" variant="secondary" size="sm" @click="showchart = !showchart">{{btntg}}</b-button></div>\
+                  <b-button class="btnprint" variant="primary" size="sm" @click="printdata">Print</b-button>\
+                <b-table v-if="!showchart" :items="getData" :fields="getFields" thead-tr-class="trhead">\
+                </b-table>\
+                <b-button-group v-if="showchart"><b-button variant="primary" @click="showchartdata(\'C\')">Core Ratio</b-button><b-button variant="primary" @click="showchartdata(\'O\')">Organic Growth</b-button><b-button variant="primary" @click="showchartdata(\'R\')">Net Revenue</b-button></b-button-group> <span class="selecttypecss">{{metrictype}}</span>\
+                <div v-show="showchart" id="chartid"></div>\
+            </div>\
+          ',
+    data: function () {
+      return {
+        sortDesc: false,
+        comparison: "Portfolio",
+        btntg: "Show data in chart",
+        showchart: false,
+        chart: undefined,
+        highchartsOptions: {},
+        categ: [],
+        minimumcore: 0,
+        minimumgrowth: 0,
+        minimumrevenue: 0,
+        coreratio: [],
+        organicgrowth: [],
+        revenue: [],
+        metrictype: ""
+      }
+    },
+    computed: {
+      chartTitle: function () {
+        return "Volaris Business Unit Performance " + store.getters.getDisplayPeriod;
+      },
+      getData: function () {
+        return store.getters.getReportDataAll;
+      },
+      getFields: function () {
+        return store.getters.getReportDataKeysAll;
+      },
+      selectedPortfolio: function () {
+        return store.getters.CurrentPortfolioData;
+      },
+      sortBy: function () {
+        return store.getters.getSortingKey;
+      },
+      comparisonSelected: function () {
+        return store.getters.getComparisonValue;
+      },
+      showPortfolio: function () {
+        return false;
+      }
+    },
+    methods: {
+      showchartdata: function (payload) {
+        var self = this;
+        switch (payload) {
+          case "C":
+            this.coreratio = getChartData(this.getData, this.categ, this.selectedPortfolio, "Core Ratio");
+            this.chart.destroy();
+            this.chart = Highcharts.chart(this.highchartsOptions);
+            this.coreratio.forEach(function (item) {
+              self.chart.addSeries(item);
+            })
+            this.chart.yAxis[0].setExtremes(this.minimumcore);
+            this.metrictype = "Core Ratio";
+            break;
+          case "O":
+            this.organicgrowth = getChartData(this.getData, this.categ, this.selectedPortfolio, "Organic Growth");
+            this.chart.destroy();
+            this.chart = Highcharts.chart(this.highchartsOptions);
+            this.organicgrowth.forEach(function (item) {
+              self.chart.addSeries(item);
+            })
+            this.chart.yAxis[0].setExtremes(this.minimumgrowth);
+            this.metrictype = "Organic Growth";
+            break;
+          case "R":
+            this.revenue = getChartData(this.getData, this.categ, this.selectedPortfolio, "Revenue");
+            this.chart.destroy();
+            this.chart = Highcharts.chart(this.highchartsOptions);
+            this.revenue.forEach(function (item) {
+              self.chart.addSeries(item);
+            })
+            this.chart.yAxis[0].setExtremes(0);
+            this.metrictype = "Net Revenue";
+            break;
+        }
+        this.chart.xAxis[0].setCategories(this.categ);
+        this.chart.xAxis[0].update({
+          labels: {
+            style: {
+              fontSize: '14px'
+            }
+          }
+        });
+        this.chart.legend.update({
+          enabled: true,
+          layout: 'vertical',
+          align: 'right',
+          verticalAlign: 'top',
+          floating: true,
+          borderWidth: 1,
+          backgroundColor: ((Highcharts.theme && Highcharts.theme.legendBackgroundColor) || '#FFFFFF'),
+          shadow: true
+        });
+        this.chart.redraw();
+      },
+      printdata: function () {
+        if (this.showchart) {
+          var mywindow = window.open('', 'my div', 'height=800,width=1000');
+          mywindow.document.write('<html><head><title>VBU Performance</title>');
+          mywindow.document.write('<style type="text/css">h2, ul.ulSelected {text-align: center; list-style: none;} .btnprint{display:none;}');
+          mywindow.document.write('</style>');
+          mywindow.document.write('</head><body >');
+          mywindow.document.write($("div#chartid").html());
+          mywindow.document.write('</body></html>');
+
+          mywindow.document.close();
+          mywindow.focus();
+          mywindow.print();
+          mywindow.close();
+        }
+        else {
+          var mywindow = window.open('', 'my div', 'height=800,width=1000');
+          mywindow.document.write('<html><head><title>VBU Performance</title>');
+          mywindow.document.write('<style type="text/css">h2, ul.ulSelected {list-style: none;} .btnprint{display:none;} table{ width:100%;} th,td{ text-align:right;} th:first-child, td:first-child{ text-align: left;}');
+          mywindow.document.write('</style>');
+          mywindow.document.write('</head><body >');
+          mywindow.document.write($("div.showTable").html());
+          mywindow.document.write('</body></html>');
+
+          mywindow.document.close();
+          mywindow.focus();
+          mywindow.print();
+          mywindow.close();
+        }
+      },
+      getname: function (payload) {
+        return payload.replace(/<(?:.|\n)*?>/gm, ' ');
+      }
+    },
+    created: function () {
+      var self = this;
+      this.highchartsOptions = {
+        chart: {
+          type: 'bar',
+          renderTo: 'chartid'
+        },
+
+        credits: {
+          enabled: false
+        },
+
+        lengend: {
+          enabled: true,
+          layout: 'vertical',
+          align: 'right',
+          verticalAlign: 'top'
+        },
+
+        title: {
+          text: null
+        },
+
+        xAxis: {
+          categories: [],
+          title: {
+            text: ''
+          },
+          alternateGridColor: '#FDFFD5'
+        },
+
+        yAxis: {
+          allowDecimals: false,
+          min: 0,
+          title: {
+            text: ''
+          }
+        },
+
+        tooltip: {
+          formatter: function () {
+            if (self.metrictype != "Net Revenue")
+              return "<h6><b>" + this.x + "</b></h6><br/>" + self.metrictype + ": " + this.y + "%";
+            else
+              return "<h6><b>" + this.x + "</b></h6><br/>" + self.metrictype + ": $" + this.y + "M";
+          }
+        },
+
+        plotOptions: {
+          bar: {
+            dataLabels: {
+              enabled: true,
+              style: {
+                fontWeight: 'normal',
+                textOutline: 'none',
+                color: '#000',
+                fontSize: '10px'
+              }
+            }
+          },
+          series: {
+            pointWidth: 20
+          }
+        },
+
+        series: []
+      }
+    },
+    mounted: function () {
+      $.each($("div.showTable tbody tr"), function (x, item) {
+        var dt = $(item).find("td:nth-child(5)").html();
+        $(item).css("background", dt);
+        $(item).find("td:nth-child(5)").css("display", "none");
+      });
+      $("div.showTable thead tr th:nth-child(5)").css("display", "none");
+      if (this.selectedPortfolio.length > 1)
+        $.each($("div.showTable tbody tr td"), function (x, item) {
+          $(item).css("color", "#000");
+        });
+
+      var _mincore = 0, _mingrowth = 0, _minrevenue = 0, _categ = [];
+      this.getData.forEach(function (item) {
+        var fn = _categ.filter(function (dta) {
+          return dta == item.VBU_Name;
+        })
+        if (fn.length == 0)
+          _categ.push(item.VBU_Name);
+
+        if (_mincore > item.Core_Ratio)
+          _mincore = item.Core_Ratio;
+
+        if (_mingrowth > item.Organic_Growth)
+          _mingrowth = item.Organic_Growth;
+
+      })
+      this.categ = _categ;
+      this.minimumcore = _mincore;
+      this.minimumgrowth = _mingrowth;
+      this.minimumrevenue = _minrevenue;
+      this.categ.sort();
+      this.chart = Highcharts.chart(this.highchartsOptions);
+      this.chart.xAxis[0].setCategories(this.categ);
+    },
+    updated: function () {
+      $.each($("div.showTable tbody tr"), function (x, item) {
+        var dt = $(item).find("td:nth-child(5)").html();
+        $(item).css("background", dt);
+        $(item).find("td:nth-child(5)").css("display", "none");
+      });
+      $("div.showTable thead tr th:nth-child(5)").css("display", "none");
+      if (this.selectedPortfolio.length > 1)
+        $.each($("div.showTable tbody tr td"), function (x, item) {
+          $(item).css("color", "#000");
+        });
+    },
+    watch: {
+      comparison: function () {
+        store.commit("setSortingKey", this.comparison);
+        this.$nextTick(function () {
+          $.each($("div.showTable tbody tr"), function (x, item) {
+            var dt = $(item).find("td:nth-child(5)").html();
+            $(item).css("background", dt);
+          });
+          if (this.selectedPortfolio.length > 1)
+            $.each($("div.showTable tbody tr td"), function (x, item) {
+              $(item).css("color", "#000");
+            });
+        });
+      },
+      showchart: function () {
+        if (this.showchart) {
+          this.btntg = "Show data in table";
+          if (this.coreratio.length == 0 && this.organicgrowth.length == 0 && this.revenue.length == 0)
+            this.showchartdata('C');
+        }
+        else
+          this.btntg = "Show data in chart";
+      }
+    }
+  });
+
+  var app = new Vue({
+    el: "#content",
+    beforeCreate: function () {
+      var _data = JSON.parse(sessionStorage.getItem("LRCData"));
+      var _details = JSON.parse(sessionStorage.getItem("LRCDataDetails"));
+      store.commit('setmetricsData', _data);
+      store.commit('updateYear', _details.Year);
+      store.commit('updateQuarter', _details.Quarter);
+      store.commit('updatePortfolio', _details.SelectedPortfolio);
+      store.commit('setSelectedQuarters', _details.SelectedQuarters);
+      store.commit('setSelectedYears', _details.SelectedYears);
+      store.commit('setComparisonValue', _details.Comparison);
+      store.commit('setCompareType', _details.CompareType);
+
+      if (_details.SelectedPortfolio.length > 1)
+        store.commit('setSortingKey', "Portfolio");
+      else
+        store.commit('setSortingKey', "VBU_Name");
+
+    }
+  });
+
+  function getParameterByName(name) {
+    name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+    var regexString = "[\\?&]" + name + "=([^&#]*)";
+    var regex = new RegExp(regexString);
+    var found = regex.exec(window.location.search);
+    if (found == null)
+      return "";
+    else
+      return decodeURIComponent(found[1].replace(/\+/g, " "));
+  }
+
+  function getChartData(wrkAry, categ, portfolio, fieldname) {
+    var wrkd = [], rdata = [];
+    categ.forEach(function (item) {
+      var _data = wrkAry.filter(function (dta) {
+        return dta.VBU_Name == item;
+      })
+
+      if (_data.length == 1) {
+        var dt = {
+          Name: item,
+          Period: [
+            {
+              Color: _data[0].Portfolio,
+              Value: getColumnValue(_data[0], fieldname)
+            }
+          ]
+        }
+        wrkd.push(dt);
+      }
+      else {
+        var dt = {
+          Name: item,
+          Period: []
+        };
+        _data.forEach(function (dta) {
+          var mt = {
+            Color: dta.Portfolio,
+            Value: getColumnValue(dta, fieldname)
+          }
+          dt.Period.push(mt);
+        })
+        wrkd.push(dt);
+      }
+    })
+
+    //_clr.forEach(function(_color){
+    portfolio.forEach(function (_color) {
+      var wrk = {
+        name: _color.Manager,
+        data: [],
+        color: _color.Color,
+        x: fieldname
+      };
+      wrkd.forEach(function (item) {
+        fnd = false;
+        $.each(item.Period, function (idx, mts) {
+          if (mts.Color == _color.Color) {
+            wrk.data.push(mts.Value);
+            fnd = true;
+            return false;
+          }
+        });
+        if (!fnd)
+          wrk.data.push(0);
+      });
+      rdata.push(wrk);
+    })
+    return rdata;
+  }
+
+  function getColumnValue(item, colname) {
+    var vl = 0;
+    switch (colname) {
+      case "Core Ratio":
+        vl = item.Core_Ratio;
+        break;
+      case "Organic Growth":
+        vl = item.Organic_Growth;
+        break;
+      case "Revenue":
+        vl = parseInt(item.Revenue.replace("$", "").replace("M", ""));
+        break;
+    }
+    return vl;
+  }
+</script>
+
+<style>
+  * {
+    -webkit-box-sizing: content-box;
+    -ms-box-sizing: content-box;
+    box-sizing: content-box;
+  }
+
+  #s4-titlerow,
+  #sideNavBox,
+  .ms-cui-topBar2 {
+    display: none !important;
+  }
+
+  #contentBox {
+    margin-left: 5px;
+  }
+
+  .table tr td {
+    text-align: right;
+  }
+
+  .table tr td {
+    border-right: 1px solid #fff;
+  }
+
+  tr td:first-child,
+  tr td:first-child>div {
+    text-align: justify !important;
+    padding-right: 0;
+  }
+
+  .showTable h2 {
+    text-align: center;
+  }
+
+  ul.ulSelected {
+    text-align: center;
+    padding-left: 0;
+    list-style: none;
+    margin: 0;
+  }
+
+  ul.ulSelected li {
+    display: inline-block;
+    padding-right: 10px;
+  }
+
+  .chkbx {
+    height: 16px;
+    width: 16px;
+    cursor: pointer;
+  }
+
+  label {
+    margin-bottom: 0;
+  }
+
+  .btnprint {
+    position: absolute;
+    right: 5px;
+    margin-top: -40px;
+  }
+
+  .dvtoggle {
+    display: flex;
+    -ms-flex-flow: row wrap;
+    -webkit-flex-flow: row wrap;
+    flex-flow: row wrap;
+    margin-bottom: 10px;
+    margin-top: 10px;
+  }
+
+  .btntoggle {
+    margin-left: 15px;
+  }
+
+  div#chartid {
+    max-width: 100%;
+    width: 100%;
+    height: 1000px;
+    overflow: visible;
+    border-top: 1px solid lightgrey;
+    margin-top: 10px;
+  }
+
+  .selecttypecss {
+    font-size: 14pt;
+    font-style: italic;
+    padding-left: 20px;
+  }
+
+  .trhead,
+  table tr td {
+    text-align: right;
+  }
+
+  table th:first-child,
+  table td:first-child {
+    text-align: left;
+  }
+</style>

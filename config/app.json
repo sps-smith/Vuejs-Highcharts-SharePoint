@@ -1,0 +1,9 @@
+{
+  "$schema": "../node_modules/sp-build-tasks/schema/v1/sppp.json",
+  "spFolder": "siteassets/highcharts",
+  "distFolder": "./dist",
+  "bundleJSLibsFiles": [
+    "./node_modules/es6-promise/dist/es6-promise.auto.min.js",
+    "./node_modules/whatwg-fetch/fetch.js"
+  ]
+}
